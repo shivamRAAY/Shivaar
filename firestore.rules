@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(val) {
+      return val is timestamp && val <= request.time;
+    }
+
+    // --- Entity Validators ---
+
+    function isValidUserProfile(data, userId) {
+      return data.userId == userId &&
+        data.name is string && data.name.size() > 0 &&
+        data.currentSemester is number && data.currentSemester >= 1 && data.currentSemester <= 8 &&
+        data.dailyBudgetMinutes is number && data.dailyBudgetMinutes > 0 &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt));
+    }
+
+    function isValidTask(data, userId) {
+      return data.userId == userId &&
+        data.title is string && data.title.size() > 0 &&
+        data.category is string &&
+        data.durationMinutes is number && data.durationMinutes > 0 &&
+        data.status in ['PENDING', 'IN_PROGRESS', 'PAUSED', 'COMPLETED', 'SKIPPED'] &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt));
+    }
+
+    function isValidSubject(data, userId) {
+      return data.userId == userId &&
+        data.code is string && data.code.size() > 0 &&
+        data.name is string && data.name.size() > 0 &&
+        data.semester is number && data.semester >= 1 && data.semester <= 8 &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt));
+    }
+
+    function isValidMilestone(data, userId) {
+      return data.userId == userId &&
+        data.monthId is string && data.monthId.size() > 0 &&
+        data.monthNumber is number && data.monthNumber >= 1 && data.monthNumber <= 48 &&
+        data.isCompleted is bool &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt));
+    }
+
+    function isValidCompletionRecord(data, userId) {
+      return data.userId == userId &&
+        data.taskId is string && data.taskId.size() > 0 &&
+        data.taskTitle is string && data.taskTitle.size() > 0 &&
+        data.completedAt is number &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt));
+    }
+
+    function isValidStudySession(data, userId) {
+      return data.userId == userId &&
+        data.taskId is string && data.taskId.size() > 0 &&
+        data.startedAt is number &&
+        data.elapsedSeconds is number &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt));
+    }
+
+    // --- Match Rules ---
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidUserProfile(request.resource.data, userId);
+      allow delete: if isOwner(userId);
+
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidTask(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /subjects/{subjectId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidSubject(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /milestones/{milestoneId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidMilestone(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /completion_records/{recordId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidCompletionRecord(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /study_sessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidStudySession(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

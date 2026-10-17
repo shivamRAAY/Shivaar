@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Academic Cap / Apex Diamond Motif -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,28 L78,40 L54,52 L30,40 Z" />
+    <!-- Tassel / Foundation Base -->
+    <path
+        android:fillColor="#E0E7FF"
+        android:pathData="M40,46 L40,62 C40,69 68,69 68,62 L68,46 L54,53 Z" />
+    <!-- Code Brackets < / > inside bottom foundation -->
+    <!-- Left bracket < -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M42,75 L36,79 L42,83" />
+    <!-- Slash / -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#A5B4FC"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M51,84 L57,74" />
+    <!-- Right bracket > -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M66,75 L72,79 L66,83" />
+    <!-- Golden North Star at Apex -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M78,32 L80,36 L84,38 L80,40 L78,44 L76,40 L72,38 L76,36 Z" />
+</vector>

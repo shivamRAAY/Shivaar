@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with academic details, semester, and daily study targets.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user ID matching auth UID." },
+        "userId": { "type": "string", "description": "Authentication UID." },
+        "name": { "type": "string", "description": "Student full name." },
+        "degree": { "type": "string", "description": "Degree program name." },
+        "institute": { "type": "string", "description": "Enrolled engineering college." },
+        "affiliatingUniversity": { "type": "string", "description": "Affiliating university." },
+        "currentSemester": { "type": "number", "description": "Current semester (1-8)." },
+        "currentMonth": { "type": "number", "description": "Current roadmap month (1-48)." },
+        "dailyBudgetMinutes": { "type": "number", "description": "Target daily study budget in minutes." },
+        "primaryTrack": { "type": "string", "description": "Selected primary specialization track." },
+        "currentLanguagePriority": { "type": "string", "description": "Current language priority." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "name", "currentSemester", "dailyBudgetMinutes"]
+    },
+    "TaskItem": {
+      "title": "TaskItem",
+      "description": "Daily engineering study task with instructional milestones and DoD.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique task ID." },
+        "userId": { "type": "string", "description": "Owner auth UID." },
+        "title": { "type": "string", "description": "Task title." },
+        "category": { "type": "string", "description": "Subject/Track category." },
+        "whyItMatters": { "type": "string", "description": "Context and industry relevance." },
+        "instructions": { "type": "string", "description": "Step by step guidance." },
+        "durationMinutes": { "type": "number", "description": "Planned duration in minutes." },
+        "priority": { "type": "string", "description": "Priority level." },
+        "difficulty": { "type": "string", "description": "Difficulty rating." },
+        "resourceName": { "type": "string", "description": "Reference material name." },
+        "resourceUrl": { "type": "string", "description": "Resource documentation link." },
+        "definitionOfDone": { "type": "string", "description": "Measurable exit criteria." },
+        "status": { "type": "string", "description": "Task status: PENDING, IN_PROGRESS, PAUSED, COMPLETED, SKIPPED." },
+        "scheduledDate": { "type": "string", "description": "Scheduled date or label (Today/Tomorrow)." },
+        "completedAt": { "type": "number", "description": "Epoch timestamp of completion." },
+        "userNotes": { "type": "string", "description": "User notes and code snippets." },
+        "actualMinutes": { "type": "number", "description": "Actual minutes spent." },
+        "blockerReason": { "type": "string", "description": "Skip or blocker reason." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "title", "category", "durationMinutes", "status"]
+    },
+    "SubjectItem": {
+      "title": "SubjectItem",
+      "description": "Academic syllabus subject with attendance and unit completion tracking.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique subject ID." },
+        "userId": { "type": "string", "description": "Owner auth UID." },
+        "code": { "type": "string", "description": "AKTU subject code." },
+        "name": { "type": "string", "description": "Subject name." },
+        "semester": { "type": "number", "description": "Academic semester." },
+        "totalClasses": { "type": "number", "description": "Total held lectures." },
+        "attendedClasses": { "type": "number", "description": "Classes attended." },
+        "targetAttendancePercent": { "type": "number", "description": "Target attendance threshold." },
+        "syllabusUnits": { "type": "array", "description": "List of syllabus units." },
+        "completedTopics": { "type": "array", "description": "List of completed topic names." },
+        "examDate": { "type": "string", "description": "University exam date." },
+        "credits": { "type": "number", "description": "Course credits." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "code", "name", "semester"]
+    },
+    "RoadmapMilestoneItem": {
+      "title": "RoadmapMilestoneItem",
+      "description": "User milestone progress for 48-month CSE roadmap.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique milestone ID." },
+        "userId": { "type": "string", "description": "Owner auth UID." },
+        "monthId": { "type": "string", "description": "Roadmap month key (e.g. month_1)." },
+        "monthNumber": { "type": "number", "description": "Month number from 1 to 48." },
+        "year": { "type": "number", "description": "Academic year (1-4)." },
+        "semester": { "type": "number", "description": "Semester (1-8)." },
+        "title": { "type": "string", "description": "Milestone title." },
+        "focus": { "type": "string", "description": "Main focus." },
+        "isCompleted": { "type": "boolean", "description": "Whether month milestone is completed." },
+        "completedAt": { "type": "number", "description": "Completion timestamp." },
+        "checkpointPassed": { "type": "boolean", "description": "Whether checkpoint criteria is met." },
+        "notes": { "type": "string", "description": "Personal review notes." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "monthId", "monthNumber", "isCompleted"]
+    },
+    "TaskCompletionRecord": {
+      "title": "TaskCompletionRecord",
+      "description": "Historical log entry of completed engineering tasks.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique completion record ID." },
+        "userId": { "type": "string", "description": "Owner auth UID." },
+        "taskId": { "type": "string", "description": "Associated task ID." },
+        "taskTitle": { "type": "string", "description": "Title of the task." },
+        "category": { "type": "string", "description": "Task category." },
+        "completedAt": { "type": "number", "description": "Epoch timestamp of completion." },
+        "actualMinutes": { "type": "number", "description": "Time spent in minutes." },
+        "notes": { "type": "string", "description": "Learning notes documented." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "taskId", "taskTitle", "completedAt"]
+    },
+    "StudySessionItem": {
+      "title": "StudySessionItem",
+      "description": "Deep focus timer session with live elapsed seconds and reflections.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique session ID." },
+        "userId": { "type": "string", "description": "Owner auth UID." },
+        "taskId": { "type": "string", "description": "Focused task ID." },
+        "taskTitle": { "type": "string", "description": "Task title." },
+        "startedAt": { "type": "number", "description": "Session start timestamp." },
+        "endedAt": { "type": "number", "description": "Session finish timestamp." },
+        "elapsedSeconds": { "type": "number", "description": "Duration in seconds." },
+        "notes": { "type": "string", "description": "Post-session reflections." },
+        "completed": { "type": "boolean", "description": "Whether session was successfully concluded." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last update." }
+      },
+      "required": ["userId", "taskId", "startedAt", "elapsedSeconds"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Root user profile document with academic settings."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/TaskItem" },
+      "description": "Daily tasks collection scoped to individual user."
+    },
+    "/users/{userId}/subjects/{subjectId}": {
+      "schema": { "$ref": "#/entities/SubjectItem" },
+      "description": "Syllabus subjects and attendance metrics."
+    },
+    "/users/{userId}/milestones/{milestoneId}": {
+      "schema": { "$ref": "#/entities/RoadmapMilestoneItem" },
+      "description": "User completion records for 48-month roadmap milestones."
+    },
+    "/users/{userId}/completion_records/{recordId}": {
+      "schema": { "$ref": "#/entities/TaskCompletionRecord" },
+      "description": "Permanent history of completed tasks."
+    },
+    "/users/{userId}/study_sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/StudySessionItem" },
+      "description": "Focus mode deep work sessions."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Shivaar",
+  "description": "Personal Academic & Career Operating System for B.Tech CSE Students",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
