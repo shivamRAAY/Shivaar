@@ -854,6 +854,172 @@ class ShivaarRepository(
         }
     }
 
+    // Phase 7: Academics Engine
+    fun addNewSubject(name: String, code: String, credits: Int, nextExamDate: String) {
+        val newSub = SubjectItem(
+            id = "sub_${System.currentTimeMillis()}",
+            name = name,
+            code = code,
+            credits = credits,
+            topics = listOf(
+                "Unit 1: Fundamentals & Introduction",
+                "Unit 2: Core Concepts & Mechanics",
+                "Unit 3: Applied Principles & Analysis",
+                "Unit 4: University Question Bank & Practice"
+            ),
+            completedTopics = emptyList(),
+            attendedClasses = 1,
+            totalClasses = 1,
+            nextExamDate = nextExamDate,
+            notes = "Enrolled course."
+        )
+        _subjects.update { it + newSub }
+    }
+
+    fun createExamPrepTask(subject: SubjectItem) {
+        val uncompleted = subject.topics.filterNot { subject.completedTopics.contains(it) }
+        val targetTopic = uncompleted.firstOrNull() ?: subject.topics.firstOrNull() ?: subject.name
+        val prepTask = TaskItem(
+            id = "task_exam_prep_${System.currentTimeMillis()}",
+            title = "Exam Prep: ${subject.name} ($targetTopic)",
+            category = TaskCategory.ACADEMICS,
+            whyItMatters = "Target exam: ${subject.nextExamDate}. High-yield university exam revision.",
+            instructions = "1. Review university previous year question papers for $targetTopic.\n2. Write structured answer definitions with block diagrams.\n3. Verify against AKTU syllabus guidelines.",
+            durationMinutes = 45,
+            priority = Priority.HIGH,
+            difficulty = Difficulty.INTERMEDIATE,
+            resourceName = "${subject.code} University Syllabus",
+            definitionOfDone = "1 complete 10-mark university question solved and notes summarized."
+        )
+        _tasks.update { listOf(prepTask) + it }
+    }
+
+    // Phase 8: Coding & DSA Placement Engine
+    fun addNewDsaProblem(
+        title: String,
+        platform: String,
+        topic: String,
+        language: String,
+        difficulty: String,
+        url: String
+    ) {
+        val newProblem = DsaProblem(
+            id = "prob_${System.currentTimeMillis()}",
+            title = title,
+            platform = platform,
+            topic = topic,
+            language = language,
+            difficulty = difficulty,
+            status = ProblemStatus.NOT_STARTED,
+            mistakeNote = "",
+            solutionSnippet = "",
+            url = url
+        )
+        _dsaProblems.update { listOf(newProblem) + it }
+    }
+
+    fun createDsaDailyPracticeTask(problem: DsaProblem) {
+        val practiceTask = TaskItem(
+            id = "task_dsa_${System.currentTimeMillis()}",
+            title = "DSA Practice: ${problem.title} (${problem.topic})",
+            category = TaskCategory.DSA,
+            whyItMatters = "Master ${problem.topic} on ${problem.platform} in ${problem.language}.",
+            instructions = "1. Read problem statement on ${problem.platform}.\n2. Formulate approach on paper with corner cases.\n3. Code optimal solution in ${problem.language} with optimal time/space complexity.\n4. Log any tricky edge cases in Mistake Log.",
+            durationMinutes = 35,
+            priority = Priority.HIGH,
+            difficulty = when (problem.difficulty.lowercase()) {
+                "easy" -> Difficulty.BEGINNER
+                "hard" -> Difficulty.ADVANCED
+                else -> Difficulty.INTERMEDIATE
+            },
+            resourceName = "${problem.platform} • ${problem.topic}",
+            definitionOfDone = "Accepted solution on ${problem.platform} with optimal time/space complexity."
+        )
+        _tasks.update { listOf(practiceTask) + it }
+    }
+
+    // Phase 9: Project Studio & Career Pipeline
+    fun addNewProject(
+        title: String,
+        tagline: String,
+        techStack: List<String>,
+        githubUrl: String,
+        whyItMatters: String
+    ) {
+        val newProj = ProjectItem(
+            id = "proj_${System.currentTimeMillis()}",
+            title = title,
+            tagline = tagline,
+            year = (_userProfile.value.currentMonth / 12) + 1,
+            semester = _userProfile.value.currentSemester,
+            techStack = techStack,
+            features = listOf(
+                ProjectFeature("Architecture & Data Schema Design", true),
+                ProjectFeature("Core Engine Implementation", false),
+                ProjectFeature("Automated Unit & Integration Tests", false),
+                ProjectFeature("CI/CD Deployment & Portfolio Docs", false)
+            ),
+            whyItMattersForPlacement = whyItMatters,
+            githubUrl = githubUrl,
+            liveDemoUrl = "",
+            isCompleted = false
+        )
+        _projects.update { listOf(newProj) + it }
+    }
+
+    fun addNewCareerApplication(
+        company: String,
+        role: String,
+        status: ApplicationStatus = ApplicationStatus.APPLIED,
+        deadline: String,
+        stipendOrPackage: String = ""
+    ) {
+        val newApp = CareerApplication(
+            id = "app_${System.currentTimeMillis()}",
+            company = company,
+            role = role,
+            status = status,
+            deadline = deadline,
+            notes = "Target software engineering role.",
+            stipendOrPackage = stipendOrPackage
+        )
+        _careerApplications.update { listOf(newApp) + it }
+    }
+
+    fun createProjectSprintTask(project: ProjectItem) {
+        val nextFeature = project.features.firstOrNull { !it.isDone }?.title ?: "Portfolio Polish & Documentation"
+        val sprintTask = TaskItem(
+            id = "task_proj_${System.currentTimeMillis()}",
+            title = "Project Sprint: ${project.title} ($nextFeature)",
+            category = TaskCategory.DEV,
+            whyItMatters = "Recruiter Value: ${project.whyItMattersForPlacement}",
+            instructions = "1. Implement $nextFeature using ${project.techStack.joinToString(", ")}.\n2. Write unit tests to verify behavior.\n3. Commit with semantic Git message and push to GitHub repository.",
+            durationMinutes = 45,
+            priority = Priority.HIGH,
+            difficulty = Difficulty.INTERMEDIATE,
+            resourceName = "${project.title} GitHub Repo",
+            resourceUrl = project.githubUrl,
+            definitionOfDone = "$nextFeature completed, tested, and pushed to repo."
+        )
+        _tasks.update { listOf(sprintTask) + it }
+    }
+
+    fun createCareerPrepTask(application: CareerApplication) {
+        val prepTask = TaskItem(
+            id = "task_career_${System.currentTimeMillis()}",
+            title = "${application.company} Prep: ${application.role} (${application.status.name})",
+            category = TaskCategory.CAREER,
+            whyItMatters = "Target deadline: ${application.deadline}. ${application.company} hiring pipeline revision.",
+            instructions = "1. Review previous interview rounds and online assessment questions for ${application.company}.\n2. Practice 2 domain-specific problems and core CS concepts (OS/DBMS/CN).\n3. Prepare 3 behavioral STAR responses for the ${application.role} position.",
+            durationMinutes = 45,
+            priority = Priority.HIGH,
+            difficulty = Difficulty.INTERMEDIATE,
+            resourceName = "${application.company} Interview Track",
+            definitionOfDone = "1 complete mock OA or 3 interview questions prepared with structured responses."
+        )
+        _tasks.update { listOf(prepTask) + it }
+    }
+
     // --- Initial Seed Generators ---
     companion object {
         fun getInitialTasks(): List<TaskItem> = listOf(

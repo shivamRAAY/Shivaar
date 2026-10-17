@@ -450,4 +450,58 @@ class ShivaarViewModel @JvmOverloads constructor(
     fun getCurriculumExportMarkdown(): String {
         return repository.getCurriculumExportMarkdown()
     }
+
+    // Phase 7 Actions
+    fun addNewSubject(name: String, code: String, credits: Int, nextExamDate: String) {
+        repository.addNewSubject(name, code, credits, nextExamDate)
+    }
+
+    fun createExamPrepTask(subject: SubjectItem) {
+        repository.createExamPrepTask(subject)
+    }
+
+    // Phase 8 Actions
+    fun addNewDsaProblem(
+        title: String,
+        platform: String,
+        topic: String,
+        language: String,
+        difficulty: String,
+        url: String
+    ) {
+        repository.addNewDsaProblem(title, platform, topic, language, difficulty, url)
+    }
+
+    fun createDsaDailyPracticeTask(problem: DsaProblem) {
+        repository.createDsaDailyPracticeTask(problem)
+    }
+
+    // Phase 9 Actions
+    fun addNewProject(
+        title: String,
+        tagline: String,
+        techStack: List<String>,
+        githubUrl: String,
+        whyItMatters: String
+    ) {
+        repository.addNewProject(title, tagline, techStack, githubUrl, whyItMatters)
+    }
+
+    fun addNewCareerApplication(
+        company: String,
+        role: String,
+        status: ApplicationStatus = ApplicationStatus.APPLIED,
+        deadline: String,
+        stipendOrPackage: String = ""
+    ) {
+        repository.addNewCareerApplication(company, role, status, deadline, stipendOrPackage)
+    }
+
+    fun createProjectSprintTask(project: ProjectItem) {
+        repository.createProjectSprintTask(project)
+    }
+
+    fun createCareerPrepTask(application: CareerApplication) {
+        repository.createCareerPrepTask(application)
+    }
 }

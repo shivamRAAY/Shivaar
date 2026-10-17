@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MyApplicationTheme {
+                var isAppOpeningActive by remember { mutableStateOf(true) }
                 val auth: FirebaseAuth = Firebase.auth
                 var currentUser by remember { mutableStateOf<FirebaseUser?>(auth.currentUser) }
 
@@ -59,21 +61,33 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                if (currentUser == null) {
-                    SignInScreen(
-                        onAuthSuccess = {
-                            currentUser = Firebase.auth.currentUser
-                        }
-                    )
-                } else {
-                    val currentTab by viewModel.currentTab.collectAsState()
-                    val focusSession by viewModel.focusSession.collectAsState()
-                    var showAddTaskDialog by remember { mutableStateOf(false) }
+                androidx.compose.animation.AnimatedContent(
+                    targetState = isAppOpeningActive,
+                    transitionSpec = {
+                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(500)) togetherWith
+                                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(400))
+                    },
+                    label = "app_opening_transition"
+                ) { isOpening ->
+                    if (isOpening) {
+                        AppOpeningAnimationScreen(
+                            onAnimationComplete = { isAppOpeningActive = false }
+                        )
+                    } else if (currentUser == null) {
+                        SignInScreen(
+                            onAuthSuccess = {
+                                currentUser = Firebase.auth.currentUser
+                            }
+                        )
+                    } else {
+                        val currentTab by viewModel.currentTab.collectAsState()
+                        val focusSession by viewModel.focusSession.collectAsState()
+                        var showAddTaskDialog by remember { mutableStateOf(false) }
 
-                    // Android back navigation: if not on TODAY, back navigates to TODAY
-                    BackHandler(enabled = currentTab != AppDestination.TODAY) {
-                        viewModel.navigateTo(AppDestination.TODAY)
-                    }
+                        // Android back navigation: if not on TODAY, back navigates to TODAY
+                        BackHandler(enabled = currentTab != AppDestination.TODAY) {
+                            viewModel.navigateTo(AppDestination.TODAY)
+                        }
 
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
@@ -170,6 +184,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
