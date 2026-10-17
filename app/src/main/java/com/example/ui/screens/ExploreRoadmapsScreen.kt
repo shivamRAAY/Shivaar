@@ -32,6 +32,7 @@ import com.example.data.model.Difficulty
 import com.example.data.model.PublicRoadmap
 import com.example.data.model.PublicRoadmapMilestone
 import com.example.data.model.RoadmapResourceVerification
+import com.example.ui.AppDestination
 import com.example.ui.ShivaarViewModel
 import com.example.ui.theme.*
 
@@ -45,9 +46,12 @@ fun ExploreRoadmapsScreen(
     var selectedCategory by remember { mutableStateOf("All") }
     var selectedLevel by remember { mutableStateOf<Difficulty?>(null) }
     var expandedRoadmapId by remember { mutableStateOf<String?>(null) }
+    var roadmapToAdopt by remember { mutableStateOf<PublicRoadmap?>(null) }
+    var adoptSuccessToast by remember { mutableStateOf<String?>(null) }
 
     val savedIds by viewModel.savedRoadmapIds.collectAsState()
     val followedIds by viewModel.followedRoadmapIds.collectAsState()
+    val adoptedRoadmapId by viewModel.adoptedRoadmapId.collectAsState()
 
     val categories = listOf(
         "All",
@@ -64,6 +68,52 @@ fun ExploreRoadmapsScreen(
             query = searchQuery,
             category = if (selectedCategory == "All") null else selectedCategory,
             level = selectedLevel
+        )
+    }
+
+    if (roadmapToAdopt != null) {
+        val target = roadmapToAdopt!!
+        AlertDialog(
+            onDismissRequest = { roadmapToAdopt = null },
+            title = {
+                Text(
+                    text = "Adopt \"${target.title}\"?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "This will set \"${target.title}\" as your active curriculum, configure all ${target.milestones.size} structured milestones adapted to your weekly schedule, and automatically seed Today's execution tasks.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "• Category: ${target.category}\n• Level: ${target.skillLevel.name}\n• Total Estimated: ${target.estimatedTotalHours} hours",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = IndigoPrimary
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.adoptPublicRoadmap(target.id)
+                        adoptSuccessToast = "Successfully adopted ${target.title} as active curriculum!"
+                        roadmapToAdopt = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary),
+                    modifier = Modifier.testTag("btn_confirm_adopt_roadmap")
+                ) {
+                    Text("Adopt & Activate")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { roadmapToAdopt = null }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 
@@ -268,16 +318,20 @@ fun ExploreRoadmapsScreen(
             }
         } else {
             items(filteredRoadmaps, key = { it.id }) { roadmap ->
+                val isAdopted = adoptedRoadmapId == roadmap.id
                 PublicRoadmapCard(
                     roadmap = roadmap,
                     isSaved = savedIds.contains(roadmap.id),
-                    isFollowed = followedIds.contains(roadmap.id),
+                    isFollowed = followedIds.contains(roadmap.id) || isAdopted,
+                    isAdopted = isAdopted,
                     isExpanded = expandedRoadmapId == roadmap.id,
                     onToggleExpand = {
                         expandedRoadmapId = if (expandedRoadmapId == roadmap.id) null else roadmap.id
                     },
                     onToggleSave = { viewModel.toggleSaveRoadmap(roadmap.id) },
-                    onToggleFollow = { viewModel.toggleFollowRoadmap(roadmap.id) }
+                    onToggleFollow = { viewModel.toggleFollowRoadmap(roadmap.id) },
+                    onAdopt = { roadmapToAdopt = roadmap },
+                    onViewActiveRoadmap = { viewModel.navigateTo(AppDestination.ROADMAP) }
                 )
             }
         }
@@ -289,10 +343,13 @@ private fun PublicRoadmapCard(
     roadmap: PublicRoadmap,
     isSaved: Boolean,
     isFollowed: Boolean,
+    isAdopted: Boolean = false,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onToggleSave: () -> Unit,
-    onToggleFollow: () -> Unit
+    onToggleFollow: () -> Unit,
+    onAdopt: () -> Unit = {},
+    onViewActiveRoadmap: () -> Unit = {}
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -343,6 +400,32 @@ private fun PublicRoadmapCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = CharcoalTextMuted
                         )
+
+                        if (isAdopted) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = SuccessEmeraldContainer
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = SuccessEmerald,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Active Curriculum",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = SuccessEmerald
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -429,7 +512,7 @@ private fun PublicRoadmapCard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Divider(color = SurfaceCardBorder)
+                    HorizontalDivider(color = SurfaceCardBorder)
 
                     Text(
                         text = "Curriculum Milestones (${roadmap.milestones.size})",
@@ -506,25 +589,62 @@ private fun PublicRoadmapCard(
                     )
                 }
 
-                Button(
-                    onClick = onToggleFollow,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFollowed) SuccessEmerald else IndigoPrimary
-                    ),
-                    modifier = Modifier.testTag("follow_roadmap_${roadmap.id}")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isFollowed) Icons.Default.Check else Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isFollowed) "Following" else "Follow Roadmap",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (!isAdopted) {
+                        Button(
+                            onClick = onAdopt,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.testTag("adopt_roadmap_${roadmap.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Adopt Curriculum",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = onViewActiveRoadmap,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessEmerald),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.testTag("view_active_adopted_${roadmap.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Active Curriculum",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onToggleFollow,
+                        modifier = Modifier.testTag("follow_roadmap_${roadmap.id}")
+                    ) {
+                        Icon(
+                            imageVector = if (isFollowed) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                            contentDescription = if (isFollowed) "Following" else "Follow",
+                            tint = if (isFollowed) IndigoPrimary else CharcoalTextMuted
+                        )
+                    }
                 }
             }
         }

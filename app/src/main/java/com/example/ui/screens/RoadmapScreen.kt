@@ -39,6 +39,9 @@ fun RoadmapScreen(
     var selectedYearFilter by remember { mutableStateOf(0) } // 0: All, 1..4
     var selectedSemesterFilter by remember { mutableStateOf(0) } // 0: All, 1..8
     var selectedTrackFilter by remember { mutableStateOf<SkillTrack?>(null) } // null: All
+    var showExportDialog by remember { mutableStateOf(false) }
+    var exportText by remember { mutableStateOf("") }
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
     val filteredMonths = remember(months, searchQuery, selectedYearFilter, selectedSemesterFilter, selectedTrackFilter) {
         months.filter { m ->
@@ -56,6 +59,65 @@ fun RoadmapScreen(
 
     val completedMonthsCount = months.count { it.isCompleted }
     val currentMonthObj = months.find { it.isCurrentMonth } ?: months.firstOrNull()
+
+    if (showExportDialog) {
+        AlertDialog(
+            onDismissRequest = { showExportDialog = false },
+            title = {
+                Text(
+                    text = "Export Study Curriculum (Markdown)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "A full structured breakdown of all milestones, weekly allocations, practice exercises, and Definition of Done criteria:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CharcoalTextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(260.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        LazyColumn(modifier = Modifier.padding(10.dp)) {
+                            item {
+                                Text(
+                                    text = exportText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(exportText))
+                        showExportDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary),
+                    modifier = Modifier.testTag("btn_copy_markdown_export")
+                ) {
+                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Copy Markdown")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExportDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = modifier
@@ -139,7 +201,17 @@ fun RoadmapScreen(
                         RoadmapProgressHeader(
                             completedCount = completedMonthsCount,
                             totalCount = months.size,
-                            currentMonth = currentMonthObj
+                            currentMonth = currentMonthObj,
+                            onAdvanceMilestone = {
+                                currentMonthObj?.let { viewModel.advanceToNextMilestone(it.id) }
+                            },
+                            onTriggerCatchUp = {
+                                viewModel.triggerAdaptiveRecovery()
+                            },
+                            onExportCurriculum = {
+                                exportText = viewModel.getCurriculumExportMarkdown()
+                                showExportDialog = true
+                            }
                         )
                     }
 
@@ -161,7 +233,9 @@ fun RoadmapScreen(
                             month = month,
                             onToggleCompletion = { viewModel.toggleMonthCompletion(month.id) },
                             onSetActive = { viewModel.setActiveMonth(month.monthNumber) },
-                            onGenerateDailyTasks = { viewModel.generateTasksForMonth(month) }
+                            onGenerateDailyTasks = { viewModel.generateTasksForMonth(month) },
+                            onSaveCustomNotes = { notes -> viewModel.updateMilestoneCustomNotes(month.id, notes) },
+                            onToggleExercise = { index -> viewModel.toggleMilestoneExercise(month.id, index) }
                         )
                     }
 
@@ -193,7 +267,10 @@ fun RoadmapScreen(
 private fun RoadmapProgressHeader(
     completedCount: Int,
     totalCount: Int,
-    currentMonth: RoadmapMonth?
+    currentMonth: RoadmapMonth?,
+    onAdvanceMilestone: () -> Unit = {},
+    onTriggerCatchUp: () -> Unit = {},
+    onExportCurriculum: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier
@@ -212,13 +289,14 @@ private fun RoadmapProgressHeader(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "4-Year Continuous CSE Roadmap",
+                        text = if (totalCount == 48) "4-Year Continuous CSE Roadmap" else "$totalCount-Month Personalized Roadmap",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "48 connected months from C foundations to applied AI & placement mastery",
+                        text = if (totalCount == 48) "48 connected months from C foundations to applied AI & placement mastery"
+                        else "Adaptive personalized curriculum tailored to your skills, weekly availability & goals",
                         style = MaterialTheme.typography.bodySmall,
                         color = CharcoalTextSecondary
                     )
@@ -241,7 +319,7 @@ private fun RoadmapProgressHeader(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Progress bar
-            val progress = (completedCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
+            val progress = if (totalCount > 0) (completedCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f) else 0f
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
@@ -255,27 +333,89 @@ private fun RoadmapProgressHeader(
             if (currentMonth != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = SurfaceCardSubtle,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(SuccessEmerald)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Active Now: Month ${currentMonth.monthNumber} • ${currentMonth.title}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(SuccessEmerald)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Active: Month ${currentMonth.monthNumber} • ${currentMonth.title}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = onAdvanceMilestone,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("btn_advance_milestone")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Complete & Advance", style = MaterialTheme.typography.labelSmall)
+                            }
+
+                            OutlinedButton(
+                                onClick = onTriggerCatchUp,
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("btn_adaptive_catchup")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Speed,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Adaptive Catch-Up", style = MaterialTheme.typography.labelSmall)
+                            }
+
+                            OutlinedButton(
+                                onClick = onExportCurriculum,
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("btn_export_curriculum")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Export Syllabus", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
                 }
             }

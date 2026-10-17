@@ -41,7 +41,12 @@ fun OnboardingScreen(
     val initialData by viewModel.onboardingData.collectAsState()
 
     // Local mutable state initialized from saved repository state
-    var currentStep by remember(initialData) { mutableIntStateOf(initialData.currentStep.coerceIn(1, 5)) }
+    var currentStep by remember(initialData) { mutableIntStateOf(initialData.currentStep.coerceIn(1, 7)) }
+    var chosenPathId by remember(initialData) { mutableStateOf(initialData.chosenPathId ?: "path_fullstack_cloud") }
+
+    val aiAnalysisFromVm by viewModel.aiAnalysisState.collectAsState()
+    val isAnalyzingProfile by viewModel.isAnalyzingProfile.collectAsState()
+    val activeAiAnalysis = aiAnalysisFromVm ?: initialData.aiAnalysis
 
     // Step 1: Education state
     var qualification by remember(initialData) { mutableStateOf(initialData.step1Education.qualification) }
@@ -134,6 +139,8 @@ fun OnboardingScreen(
                 learningStylePreferences = selectedLearningStyles.toList(),
                 existingCommitments = existingCommitments
             ),
+            aiAnalysis = activeAiAnalysis,
+            chosenPathId = chosenPathId,
             currentStep = currentStep,
             isCompleted = markCompleted,
             completedAt = if (markCompleted) System.currentTimeMillis() else initialData.completedAt
@@ -163,7 +170,7 @@ fun OnboardingScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Step $currentStep of 5 • ${getStepTitle(currentStep)}",
+                            text = "Step $currentStep of 7 • ${getStepTitle(currentStep)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = CharcoalTextMuted
                         )
@@ -247,9 +254,19 @@ fun OnboardingScreen(
                             if (currentStep < 5) {
                                 saveCurrentProgress(false)
                                 currentStep++
+                            } else if (currentStep == 5) {
+                                saveCurrentProgress(false)
+                                currentStep = 6
+                                if (activeAiAnalysis == null) {
+                                    viewModel.requestProfileAnalysis()
+                                }
+                            } else if (currentStep == 6) {
+                                saveCurrentProgress(false)
+                                currentStep = 7
                             } else {
-                                // Complete Step 5 -> Save completed onboarding
+                                // Step 7: Complete onboarding, generate personalized roadmap (Phase 4) and initialize execution tasks (Phase 5)
                                 saveCurrentProgress(true)
+                                viewModel.choosePath(chosenPathId)
                                 onFinishOrExit()
                             }
                         },
@@ -258,12 +275,17 @@ fun OnboardingScreen(
                         modifier = Modifier.testTag("onboarding_next_step_btn")
                     ) {
                         Text(
-                            text = if (currentStep < 5) "Save & Continue" else "Complete Profile",
+                            text = when (currentStep) {
+                                in 1..4 -> "Save & Continue"
+                                5 -> "Analyze Profile with AI"
+                                6 -> "Proceed to Path Choice"
+                                else -> "Generate Roadmap & Start"
+                            },
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
-                            imageVector = if (currentStep < 5) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Check,
+                            imageVector = if (currentStep < 7) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.RocketLaunch,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
@@ -280,7 +302,7 @@ fun OnboardingScreen(
         ) {
             // Stepper Progress Indicator
             LinearProgressIndicator(
-                progress = { (currentStep / 5f).coerceIn(0f, 1f) },
+                progress = { (currentStep / 7f).coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(4.dp),
@@ -420,6 +442,26 @@ fun OnboardingScreen(
                             )
                         }
                     }
+
+                    6 -> {
+                        item {
+                            Step6AiAnalysisSection(
+                                analysis = activeAiAnalysis,
+                                isAnalyzing = isAnalyzingProfile,
+                                onRetryAnalysis = { viewModel.requestProfileAnalysis() }
+                            )
+                        }
+                    }
+
+                    7 -> {
+                        item {
+                            Step7PathSelectionSection(
+                                selectedPathId = chosenPathId,
+                                onSelectPath = { chosenPathId = it },
+                                availableHours = availableHoursPerWeek
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -443,6 +485,8 @@ private fun getStepTitle(step: Int): String = when (step) {
     3 -> "Career & Learning Goals"
     4 -> "Technical Interests"
     5 -> "Schedule & Constraints"
+    6 -> "AI Profile & Diagnostic Analysis"
+    7 -> "Career Path & Roadmap Selection"
     else -> "Onboarding"
 }
 
@@ -1532,3 +1576,512 @@ private fun DiagnosticAssessmentDialog(
         }
     )
 }
+
+// ==========================================
+// STEP 6: AI PROFILE ANALYSIS COMPONENT
+// ==========================================
+
+@Composable
+private fun Step6AiAnalysisSection(
+    analysis: AiProfileAnalysis?,
+    isAnalyzing: Boolean,
+    onRetryAnalysis: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.testTag("step6_ai_analysis_section")
+    ) {
+        // AI Mentor Header Card
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, SurfaceCardBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(IndigoContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Psychology,
+                                contentDescription = null,
+                                tint = IndigoPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Gemini 2.5 Pro Career Architect",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Grounded Profile & Diagnostics Synthesis",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CharcoalTextSecondary
+                            )
+                        }
+                    }
+
+                    if (!isAnalyzing) {
+                        IconButton(
+                            onClick = onRetryAnalysis,
+                            modifier = Modifier.testTag("btn_refresh_ai_analysis")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Regenerate Analysis",
+                                tint = IndigoPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isAnalyzing) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = SurfaceCardSubtle,
+                border = BorderStroke(1.dp, SurfaceCardBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        color = IndigoPrimary,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Synthesizing your engineering baseline...",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Analyzing academic curriculum, diagnostic verification, target timeline, and available hours...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CharcoalTextSecondary,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            }
+        } else if (analysis != null) {
+            // Starting Level Badge
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = IndigoContainer.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, IndigoPrimary.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Stars,
+                        contentDescription = null,
+                        tint = IndigoPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Assessed Baseline Level",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = IndigoPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = analysis.currentStartingLevel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // Strengths Card
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = SuccessEmeraldContainer.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, SuccessEmerald.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = SuccessEmerald,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Verified Strengths & Competencies",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = SuccessEmerald
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    analysis.existingStrengths.forEach { str ->
+                        Row(modifier = Modifier.padding(vertical = 3.dp)) {
+                            Text("• ", color = SuccessEmerald, fontWeight = FontWeight.Bold)
+                            Text(text = str, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
+            // Knowledge Gaps Card
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = WarningAmberContainer.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = WarningAmber,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Identified Knowledge Gaps & Crucial Prerequisites",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = WarningAmber
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    (analysis.knowledgeGaps + analysis.relevantPrerequisites).distinct().forEach { gap ->
+                        Row(modifier = Modifier.padding(vertical = 3.dp)) {
+                            Text("⚠️ ", fontSize = 12.sp)
+                            Text(text = gap, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
+            // Feasibility Card
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, SurfaceCardBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "Goal Feasibility Assessment",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = analysis.goalFeasibilityAnalysis,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CharcoalTextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = SurfaceCardSubtle,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Calibrated Weekly Study:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                            Text("${analysis.expectedWeeklyEffortHours} Hours/Week", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = IndigoPrimary)
+                        }
+                    }
+
+                    if (analysis.tradeoffsAndDisadvantages.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Anticipated Trade-offs & Challenges:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        analysis.tradeoffsAndDisadvantages.forEach { t ->
+                            Text(text = "• $t", style = MaterialTheme.typography.bodySmall, color = CharcoalTextSecondary)
+                        }
+                    }
+                }
+            }
+
+            // Next Immediate Step Card
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = IndigoPrimary.copy(alpha = 0.08f),
+                border = BorderStroke(1.5.dp, IndigoPrimary.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsRun,
+                            contentDescription = null,
+                            tint = IndigoPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Recommended Next Immediate Step",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = IndigoPrimary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = analysis.recommendedNextImmediateStep,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // Transparency Disclosure
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = SurfaceCardSubtle,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "AI Transparency Disclosure",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = CharcoalTextMuted
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Verified Curriculum: ${analysis.verifiedInfoSummary}\nSelf-Reported: ${analysis.userProvidedInfoSummary}\nAssumptions: ${analysis.aiAssumptionsSummary}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CharcoalTextSecondary,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// STEP 7: PATH SELECTION & COMPARISON COMPONENT
+// ==========================================
+
+@Composable
+private fun Step7PathSelectionSection(
+    selectedPathId: String,
+    onSelectPath: (String) -> Unit,
+    availableHours: Int
+) {
+    val paths = listOf(
+        PathOptionDisplay(
+            id = "path_fullstack_cloud",
+            title = "Full-Stack Software Development & Cloud",
+            subtitle = "Modern Web, Scalable Backend APIs, PostgreSQL & Cloud-Native Deployment",
+            hours = 650,
+            recommendedBadge = "Highest Job Volume",
+            suits = "Ideal for shipping complete production applications, web platforms, and startup MVPs with end-to-end autonomy.",
+            techStack = listOf("TypeScript", "React 19", "Node/Express", "PostgreSQL", "Docker", "AWS / VPS"),
+            project = "Multi-Tenant SaaS Platform with Stripe Billing & Live Analytics",
+            advantages = listOf("Fastest path to interview-ready portfolio", "High industry demand across product companies"),
+            challenges = listOf("Fast-moving ecosystem requiring disciplined stack selection")
+        ),
+        PathOptionDisplay(
+            id = "path_systems_dsa",
+            title = "Systems Programming & High-Performance Core DSA",
+            subtitle = "C/C++20, Memory Models, Linux POSIX Internals & Algorithmic Depth",
+            hours = 750,
+            recommendedBadge = "Elite Tech & Quant",
+            suits = "Ideal for low-level systems, kernel development, databases, high-frequency trading, and top-tier product SWE.",
+            techStack = listOf("C/C++20", "POSIX Sockets", "epoll", "GDB", "Valgrind", "Advanced DSA"),
+            project = "In-Memory Key-Value Storage Engine with WAL and Snapshot Isolation",
+            advantages = listOf("Deep architectural understanding of hardware & OS", "Decisive edge in rigorous coding rounds"),
+            challenges = listOf("Steeper learning curve with manual memory management")
+        ),
+        PathOptionDisplay(
+            id = "path_agentic_ai",
+            title = "Agentic AI & Autonomous Systems Engineering",
+            subtitle = "Python AsyncIO, Gemini 2.5 API, Multi-Agent LangGraph & Enterprise RAG",
+            hours = 600,
+            recommendedBadge = "Frontier Specialization",
+            suits = "Ideal for engineers building autonomous agent workflows, LLM tool pipelines, and modern intelligent automation.",
+            techStack = listOf("Python 3.12", "AsyncIO", "Gemini Pro API", "LangGraph", "Vector DBs", "RAG"),
+            project = "Autonomous Multi-Agent Code Reviewer with Self-Correction Loops",
+            advantages = listOf("Cutting-edge technology with explosive market interest", "Direct leverage of modern AI APIs"),
+            challenges = listOf("Requires solid programming fundamentals before agent abstractions")
+        ),
+        PathOptionDisplay(
+            id = "path_custom_exploration",
+            title = "Custom & Exploratory Track",
+            subtitle = "Curated Hybrid Curriculum — CS Fundamentals, Algorithms & Web Basics",
+            hours = 550,
+            recommendedBadge = "Flexible Pace",
+            suits = "Ideal for students sampling multiple domains before committing to a single career specialty.",
+            techStack = listOf("C/C++", "Python", "Data Structures", "Web Basics", "Operating Systems"),
+            project = "Modular Foundation Projects across Systems, Web, and Algorithms",
+            advantages = listOf("Maximum flexibility to pivot later", "Strong academic alignment"),
+            challenges = listOf("Requires deliberate specialization in later semesters")
+        )
+    )
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.testTag("step7_path_selection_section")
+    ) {
+        Column {
+            Text(
+                text = "Choose Your Engineering Specialization",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Your personalized roadmap milestones, weekly project targets, and daily tasks will be synthesized based on this choice.",
+                style = MaterialTheme.typography.bodySmall,
+                color = CharcoalTextSecondary
+            )
+        }
+
+        paths.forEach { path ->
+            val isSelected = selectedPathId == path.id
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (isSelected) IndigoContainer.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    if (isSelected) 2.dp else 1.dp,
+                    if (isSelected) IndigoPrimary else SurfaceCardBorder
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelectPath(path.id) }
+                    .testTag("path_card_${path.id}")
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = path.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = path.subtitle,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = IndigoPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = { onSelectPath(path.id) },
+                            colors = RadioButtonDefaults.colors(selectedColor = IndigoPrimary)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = IndigoContainer
+                        ) {
+                            Text(
+                                text = path.recommendedBadge,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = IndigoPrimary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = SurfaceCardSubtle
+                        ) {
+                            Text(
+                                text = "Est. ${path.hours} Total Hours (~$availableHours hrs/wk)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CharcoalTextSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = path.suits,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Tech Stack: ${path.techStack.joinToString(" • ")}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CharcoalTextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Capstone: ${path.project}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class PathOptionDisplay(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val hours: Int,
+    val recommendedBadge: String,
+    val suits: String,
+    val techStack: List<String>,
+    val project: String,
+    val advantages: List<String>,
+    val challenges: List<String>
+)

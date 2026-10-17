@@ -131,7 +131,7 @@ object PersonalizedRoadmapEngine {
                 definitionOfDone = dod,
                 revisionSchedule = revSchedule,
                 budget = BudgetEstimate(
-                    zeroCostStack = "Linux (Ubuntu/Fedora), VS Code / NeoVim, GCC/G++, Python 3, Git, PostgreSQL Free, Docker CE",
+                    freeResources = "Linux (Ubuntu/Fedora), VS Code / NeoVim, GCC/G++, Python 3, Git, PostgreSQL Free, Docker CE",
                     lowCostEssentials = if (budgetRange.contains("Free", ignoreCase = true)) "None required (₹0)" else "₹500-1,000/yr for domain/VPS testing",
                     optionalPaid = "None required for core academic & SWE mastery",
                     totalInrEstimate = if (budgetRange.contains("Free", ignoreCase = true)) "₹0" else "₹0 - ₹1,500"
@@ -197,7 +197,7 @@ object PersonalizedRoadmapEngine {
                 measurableOutput = template.measurableOutput,
                 readinessCheckpoint = template.checkpoint,
                 budget = BudgetEstimate(
-                    zeroCostStack = "Open-source Linux, VS Code, Git, Docker, Postgres, GitHub Actions",
+                    freeResources = "Open-source Linux, VS Code, Git, Docker, Postgres, GitHub Actions",
                     lowCostEssentials = if (budgetRange.contains("Free", ignoreCase = true)) "₹0" else "₹800/yr for custom domain & cloud testing",
                     optionalPaid = "None mandatory",
                     totalInrEstimate = if (budgetRange.contains("Free", ignoreCase = true)) "₹0" else "₹0 - ₹1,200"
@@ -245,7 +245,7 @@ object PersonalizedRoadmapEngine {
                 title = "TypeScript & Asynchronous Programming",
                 mainFocus = "TypeScript strict typing, closures, Promises, Event Loop",
                 secondarySkill = "Modern Git workflow, linting, Prettier",
-                track = SkillTrack.SOFTWARE_DEVELOPMENT,
+                track = SkillTrack.DEV_PROJECTS,
                 topics = listOf("Type inference vs annotations", "Generics & Utility types", "Async/Await internals", "Node.js runtime basics"),
                 dsaTarget = "Arrays, Strings, Hash Maps (Two-pointer, Sliding window)",
                 project = "CLI Task Management Tool with JSON persistence and unit tests",
@@ -262,7 +262,7 @@ object PersonalizedRoadmapEngine {
                 title = "Backend Services & REST/gRPC APIs",
                 mainFocus = "Express/FastAPI, HTTP RFC specs, middleware, input validation",
                 secondarySkill = "Automated API testing with Jest/Supertest",
-                track = SkillTrack.SOFTWARE_DEVELOPMENT,
+                track = SkillTrack.DEV_PROJECTS,
                 topics = listOf("RESTful architecture", "Request/Response lifecycle", "Zod/Pydantic validation", "JWT Authentication & CORS"),
                 dsaTarget = "Linked Lists & Stacks (Monotonic stack, cycle detection)",
                 project = "Secure Multi-tenant Authentication & Notes API",
@@ -296,7 +296,7 @@ object PersonalizedRoadmapEngine {
                 title = "React & Clean Component Architecture",
                 mainFocus = "React 19, custom hooks, state machines, reconciliation engine",
                 secondarySkill = "Tailwind CSS & Material UI component libraries",
-                track = SkillTrack.SOFTWARE_DEVELOPMENT,
+                track = SkillTrack.DEV_PROJECTS,
                 topics = listOf("Virtual DOM & Fiber reconciler", "Server vs Client components", "Optimistic UI updates", "Accessibility (a11y)"),
                 dsaTarget = "Binary Trees & BSTs (In-order, BFS, DFS)",
                 project = "Real-Time Collaborative Dashboard with Optimistic Updates",
@@ -313,7 +313,7 @@ object PersonalizedRoadmapEngine {
                 title = "Docker, Caching & Cloud Infrastructure",
                 mainFocus = "Containerization, Multi-stage Docker builds, Redis caching, CI/CD",
                 secondarySkill = "GitHub Actions workflows & automated deployment",
-                track = SkillTrack.SOFTWARE_DEVELOPMENT,
+                track = SkillTrack.DEV_PROJECTS,
                 topics = listOf("Docker layers & caching", "Redis Cache-aside & Pub/Sub", "Linux cgroups & namespaces", "Reverse proxy with Nginx"),
                 dsaTarget = "Heaps & Priority Queues (Top-K elements)",
                 project = "Distributed Task Queue with Redis & Worker Fleet",
@@ -330,7 +330,7 @@ object PersonalizedRoadmapEngine {
                 title = "Production Capstone & Interview Readiness",
                 mainFocus = "Full-scale production deployment, monitoring, system design interview prep",
                 secondarySkill = "System design diagrams & behavioral interview prep",
-                track = SkillTrack.CAREER_PREPARATION,
+                track = SkillTrack.CAREER_INTERNSHIPS,
                 topics = listOf("Horizontal scaling & load balancers", "Rate limiting & CAP Theorem", "Log aggregation & metrics", "Behavioral STAR method"),
                 dsaTarget = "Graphs (Dijkstra, Topological Sort) & Dynamic Programming basics",
                 project = "End-to-End SaaS Platform with Stripe Billing & Live Analytics",
@@ -353,7 +353,7 @@ object PersonalizedRoadmapEngine {
                     title = "Advanced Scale & Microservices (Month $m)",
                     mainFocus = "gRPC, Apache Kafka / RabbitMQ event streaming, Kubernetes basics",
                     secondarySkill = "Security auditing (OWASP Top 10)",
-                    track = SkillTrack.SOFTWARE_DEVELOPMENT,
+                    track = SkillTrack.DEV_PROJECTS,
                     topics = listOf("Event-driven architecture", "Saga pattern", "Idempotency", "Database sharding"),
                     dsaTarget = "Advanced DP & Trie structures",
                     project = "Event-Driven Microservices Architecture with Saga Pattern",
@@ -378,7 +378,7 @@ object PersonalizedRoadmapEngine {
                 title = "C Memory Model & Pointer Mechanics",
                 mainFocus = "Pointers, dynamic memory (malloc/free), stack vs heap, structs & padding",
                 secondarySkill = "GCC/Clang, Makefiles, GDB debugging",
-                track = SkillTrack.PROGRAMMING,
+                track = SkillTrack.PROGRAMMING_DSA,
                 topics = listOf("Pointer arithmetic", "Function pointers & vtables", "Memory alignment", "Valgrind memory leak detection"),
                 dsaTarget = "Dynamic Arrays & Linked Lists in pure C",
                 project = "Custom Dynamic Memory Allocator (my_malloc and my_free)",
@@ -395,7 +395,7 @@ object PersonalizedRoadmapEngine {
                 title = "Modern C++ & OOP Architecture",
                 mainFocus = "C++20, RAII, Smart Pointers (unique_ptr, shared_ptr), Move Semantics",
                 secondarySkill = "CMake build systems, Catch2 / GoogleTest",
-                track = SkillTrack.PROGRAMMING,
+                track = SkillTrack.PROGRAMMING_DSA,
                 topics = listOf("Lvalue vs Rvalue references", "Move constructors & perfect forwarding", "Rule of 5", "Templates & Concepts"),
                 dsaTarget = "Stacks, Queues, and Priority Queues using C++ STL",
                 project = "Thread-Safe Blocking Queue & Generic Thread Pool in C++",
@@ -434,7 +434,7 @@ object PersonalizedRoadmapEngine {
                     title = "Database Internals & In-Memory Storage (Month $m)",
                     mainFocus = "LSM Trees, Write-Ahead Logging (WAL), B-Trees, Cache-Oblivious Algorithms",
                     secondarySkill = "Benchmarking with Google Benchmark",
-                    track = SkillTrack.SOFTWARE_DEVELOPMENT,
+                    track = SkillTrack.DEV_PROJECTS,
                     topics = listOf("SSTables & MemTable", "Bloom Filters", "Compaction strategies", "Page cache & fsync semantics"),
                     dsaTarget = "Graphs (Tarjan, Dijkstra) & Dynamic Programming",
                     project = "In-Memory Key-Value Store with Persistence Engine in C++",
@@ -459,7 +459,7 @@ object PersonalizedRoadmapEngine {
                 title = "Python 3 & AsyncIO Systems",
                 mainFocus = "Pythonic design, AsyncIO event loop, generators, context managers, type hints",
                 secondarySkill = "Pytest, Pydantic v2, Ruff linter",
-                track = SkillTrack.PROGRAMMING,
+                track = SkillTrack.PROGRAMMING_DSA,
                 topics = listOf("Async/Await coroutines", "Generators & Iterators", "Pydantic data modeling", "Packaging with Poetry"),
                 dsaTarget = "Arrays, Hash Maps, and Priority Queues in Python",
                 project = "Asynchronous Data Scraping & Pipeline Engine with Rate Limiting",
@@ -531,5 +531,163 @@ object PersonalizedRoadmapEngine {
         }
 
         return list.take(totalMonths)
+    }
+
+    /**
+     * Phase 6: Public Roadmap Adaptation Engine
+     * Converts a curated PublicRoadmap and its milestones into personalized RoadmapMonth objects,
+     * tailoring the pacing and weekly allocation to the student's constraints.
+     */
+    fun adaptPublicRoadmapToPersonalCurriculum(
+        publicRoadmap: PublicRoadmap,
+        onboardingData: OnboardingData = OnboardingData()
+    ): List<RoadmapMonth> {
+        val weeklyHours = onboardingData.step5Constraints.availableHoursPerWeek.coerceIn(8, 40)
+        val budgetInr = onboardingData.step5Constraints.budgetRangeInr
+
+        val track = when (publicRoadmap.category.lowercase()) {
+            "artificial intelligence", "machine learning", "ai & machine learning" -> SkillTrack.AI_ML
+            "core computer science", "systems" -> SkillTrack.CORE_CS
+            "programming languages" -> SkillTrack.PROGRAMMING_DSA
+            "career & interviews", "placements" -> SkillTrack.PLACEMENT_PREP
+            "college academics" -> SkillTrack.ACADEMICS
+            else -> SkillTrack.DEV_PROJECTS
+        }
+
+        val dsaHours = when (track) {
+            SkillTrack.PROGRAMMING_DSA -> (weeklyHours * 0.45f).toInt().coerceAtLeast(3)
+            SkillTrack.CORE_CS -> (weeklyHours * 0.30f).toInt().coerceAtLeast(2)
+            SkillTrack.AI_ML -> (weeklyHours * 0.25f).toInt().coerceAtLeast(2)
+            else -> (weeklyHours * 0.25f).toInt().coerceAtLeast(2)
+        }
+        val devHours = when (track) {
+            SkillTrack.DEV_PROJECTS -> (weeklyHours * 0.45f).toInt().coerceAtLeast(3)
+            SkillTrack.AI_ML -> (weeklyHours * 0.40f).toInt().coerceAtLeast(3)
+            else -> (weeklyHours * 0.30f).toInt().coerceAtLeast(2)
+        }
+        val coreCsHours = (weeklyHours * 0.20f).toInt().coerceAtLeast(2)
+        val academicsHours = (weeklyHours - dsaHours - devHours - coreCsHours).coerceAtLeast(1)
+
+        val allocation = WeeklyTimeAllocation(
+            dsaHours = dsaHours,
+            developmentHours = devHours,
+            coreCsHours = coreCsHours,
+            academicsHours = academicsHours,
+            totalWeeklyHours = weeklyHours
+        )
+
+        return publicRoadmap.milestones.mapIndexed { index, m ->
+            val monthNum = index + 1
+            val phaseNum = (index / 3) + 1
+            val phaseTitle = "${publicRoadmap.title} • Phase $phaseNum"
+            val semMilestoneName = "Milestone $monthNum of ${publicRoadmap.milestones.size}"
+
+            val dsaGoal = if (m.practiceExercises.isNotEmpty()) m.practiceExercises.first() else "Solve 15-20 topic problems"
+            val primaryProject = if (m.projectOutputs.isNotEmpty()) m.projectOutputs.first() else "${m.title} Verification Project"
+            val dod = m.definitionOfDone.ifBlank { "Pass 100% of milestone evaluation criteria and code reviews." }
+            val checkpoint = m.assessmentCriteria.ifBlank { "Demonstrate working knowledge of ${m.title} with clean code." }
+            val recovery = "Review ${m.prerequisites.firstOrNull() ?: "prior milestone concepts"}, focus on the primary project output, and utilize ${publicRoadmap.officialDocLinks.firstOrNull() ?: "official documentation"}."
+
+            val budget = BudgetEstimate(
+                freeResources = m.recommendedResources.firstOrNull() ?: (publicRoadmap.officialDocLinks.firstOrNull() ?: "Official Documentation"),
+                lowCostEssentials = if (budgetInr.contains("₹0")) "None required (₹0)" else "₹500 reference readings",
+                optionalPaid = "None required",
+                totalInrEstimate = if (budgetInr.contains("₹0")) "₹0" else "₹500"
+            )
+
+            RoadmapMonth(
+                id = "${publicRoadmap.id}_month_$monthNum",
+                monthNumber = monthNum,
+                year = ((index / 12) + 1),
+                semester = ((index / 6) + 1),
+                title = m.title,
+                mainFocus = m.description,
+                secondarySkill = if (m.topics.size > 1) m.topics[1] else "Self-Study & Review",
+                maintenanceSkill = if (m.prerequisites.isNotEmpty()) m.prerequisites.first() else "Programming Foundations",
+                primaryTrack = track,
+                topics = m.topics,
+                dsaTarget = dsaGoal,
+                cumulativeDsaGoal = monthNum * 20,
+                projectMilestone = primaryProject,
+                collegeAcademicFocus = "Curriculum Track: ${publicRoadmap.title}",
+                coreCsTarget = m.assessmentCriteria.ifBlank { "Mastery of ${m.title}" },
+                weeklyAllocation = allocation,
+                estimatedMonthlyHours = maxOf(m.estimatedHours, weeklyHours * 4),
+                measurableOutput = if (m.projectOutputs.isNotEmpty()) m.projectOutputs.joinToString("; ") else dod,
+                readinessCheckpoint = checkpoint,
+                budget = budget,
+                optionalActivities = publicRoadmap.optionalNextRoadmaps.map { "Explore next: $it" },
+                prerequisites = m.prerequisites,
+                revisionRequirements = "Weekly spaced retrieval on: ${m.topics.take(2).joinToString(", ")}",
+                failureRecoveryInstructions = recovery,
+                isCompleted = false,
+                isCurrentMonth = index == 0,
+                learningObjectives = m.topics.map { "Understand and master $it" },
+                practiceExercises = m.practiceExercises,
+                assessmentCriteria = m.assessmentCriteria,
+                learningResources = m.recommendedResources + publicRoadmap.officialDocLinks,
+                definitionOfDone = dod,
+                revisionSchedule = "Sunday 45-min active recall covering ${m.title}",
+                phaseOrYearName = phaseTitle,
+                semesterOrMilestoneName = semMilestoneName,
+                customNotes = "",
+                completedExercises = emptyList()
+            )
+        }
+    }
+
+    /**
+     * Phase 6: Curriculum Syllabus Exporter
+     * Formats the roadmap into a comprehensive Markdown study plan.
+     */
+    fun exportCurriculumAsMarkdown(roadmapTitle: String, months: List<RoadmapMonth>): String {
+        val sb = StringBuilder()
+        sb.appendLine("# Shivaar 2.0 Study Curriculum: $roadmapTitle")
+        sb.appendLine("Generated on: ${java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())}")
+        sb.appendLine("Total Milestones / Months: ${months.size}")
+        if (months.isNotEmpty()) {
+            val totalHours = months.first().weeklyAllocation.totalWeeklyHours
+            sb.appendLine("Planned Commitment: $totalHours Hours / Week")
+        }
+        sb.appendLine()
+        sb.appendLine("---")
+        sb.appendLine()
+
+        months.forEach { m ->
+            val statusEmoji = if (m.isCompleted) "✅ [COMPLETED]" else if (m.isCurrentMonth) "🚀 [CURRENT ACTIVE]" else "⏳ [PLANNED]"
+            sb.appendLine("## Month ${m.monthNumber}: ${m.title} $statusEmoji")
+            sb.appendLine("**Focus:** ${m.mainFocus}")
+            sb.appendLine("**Track:** ${m.primaryTrack.label} | **Allocation:** ${m.weeklyAllocation.totalWeeklyHours}h/week")
+            sb.appendLine()
+            sb.appendLine("### Core Topics")
+            m.topics.forEach { t -> sb.appendLine("- $t") }
+            sb.appendLine()
+            if (m.practiceExercises.isNotEmpty()) {
+                sb.appendLine("### Practice Exercises")
+                m.practiceExercises.forEachIndexed { idx, ex ->
+                    val check = if (m.completedExercises.contains(idx)) "[x]" else "[ ]"
+                    sb.appendLine("- $check $ex")
+                }
+                sb.appendLine()
+            }
+            sb.appendLine("### Project Milestone & DoD")
+            sb.appendLine("- **Project:** ${m.projectMilestone}")
+            sb.appendLine("- **Definition of Done:** ${m.definitionOfDone}")
+            sb.appendLine("- **Readiness Checkpoint:** ${m.readinessCheckpoint}")
+            if (m.learningResources.isNotEmpty()) {
+                sb.appendLine()
+                sb.appendLine("### Recommended References")
+                m.learningResources.forEach { r -> sb.appendLine("- $r") }
+            }
+            if (m.customNotes.isNotBlank()) {
+                sb.appendLine()
+                sb.appendLine("### Personal Notes")
+                sb.appendLine(m.customNotes)
+            }
+            sb.appendLine()
+            sb.appendLine("---")
+            sb.appendLine()
+        }
+        return sb.toString()
     }
 }

@@ -53,6 +53,8 @@ fun TodayScreen(
     val syncStatus by viewModel.syncStatus.collectAsState()
     val onboardingData by viewModel.onboardingData.collectAsState()
 
+    val roadmapMonths by viewModel.roadmapMonths.collectAsState()
+
     var selectedTaskForNotes by remember { mutableStateOf<TaskItem?>(null) }
     var noteInputText by remember { mutableStateOf("") }
     var taskToReschedule by remember { mutableStateOf<TaskItem?>(null) }
@@ -80,7 +82,7 @@ fun TodayScreen(
             )
         }
 
-        // --- 1.5. Onboarding / Path Personalization Banner ---
+        // --- 1.5. Onboarding / Path Personalization Banner or Active Milestone Banner ---
         if (!onboardingData.isCompleted) {
             item {
                 Surface(
@@ -114,7 +116,7 @@ fun TodayScreen(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Step ${onboardingData.currentStep} of 5 • Tailor roadmaps, constraints & skill diagnostic to your stage.",
+                                text = "Step ${onboardingData.currentStep} of 7 • Tailor roadmaps, constraints, AI diagnostic & path choice to your stage.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = CharcoalTextSecondary
                             )
@@ -131,6 +133,81 @@ fun TodayScreen(
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelMedium
                             )
+                        }
+                    }
+                }
+            }
+        } else {
+            val activeMonth = roadmapMonths.firstOrNull { it.isCurrentMonth } ?: roadmapMonths.firstOrNull()
+            if (activeMonth != null) {
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("active_milestone_execution_banner"),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, IndigoPrimary.copy(alpha = 0.35f)),
+                        shadowElevation = 1.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(SuccessEmerald)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Active Milestone • M${activeMonth.monthNumber}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = IndigoPrimary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = activeMonth.title,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Target: ${activeMonth.projectMilestone}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CharcoalTextSecondary,
+                                    maxLines = 1
+                                )
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                IconButton(
+                                    onClick = { viewModel.generateTasksForMonth(activeMonth) },
+                                    modifier = Modifier.testTag("btn_quick_sync_milestone_tasks")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AddAlarm,
+                                        contentDescription = "Sync Milestone Tasks",
+                                        tint = IndigoPrimary
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.navigateTo(AppDestination.ROADMAP) },
+                                    modifier = Modifier.testTag("btn_view_active_roadmap")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                        contentDescription = "View Roadmap",
+                                        tint = CharcoalTextSecondary
+                                    )
+                                }
+                            }
                         }
                     }
                 }

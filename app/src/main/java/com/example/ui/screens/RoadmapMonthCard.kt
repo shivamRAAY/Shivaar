@@ -31,10 +31,14 @@ fun RoadmapMonthCard(
     onToggleCompletion: () -> Unit,
     onSetActive: () -> Unit,
     onGenerateDailyTasks: () -> Unit,
+    onSaveCustomNotes: (String) -> Unit = {},
+    onToggleExercise: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(month.isCurrentMonth) }
     var taskGeneratedToast by remember { mutableStateOf(false) }
+    var localNotes by remember(month.customNotes) { mutableStateOf(month.customNotes) }
+    var isEditingNotes by remember { mutableStateOf(false) }
 
     val trackColor = Color(month.primaryTrack.colorHex)
 
@@ -78,13 +82,13 @@ fun RoadmapMonthCard(
 
                     Column {
                         Text(
-                            text = "Year ${month.year} • Semester ${month.semester}",
+                            text = if (month.phaseOrYearName.isNotBlank()) month.phaseOrYearName else "Year ${month.year} • Semester ${month.semester}",
                             style = MaterialTheme.typography.labelSmall,
                             color = CharcoalTextMuted,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = month.primaryTrack.label,
+                            text = if (month.semesterOrMilestoneName.isNotBlank()) "${month.semesterOrMilestoneName} • ${month.primaryTrack.label}" else month.primaryTrack.label,
                             style = MaterialTheme.typography.labelSmall,
                             color = trackColor,
                             fontWeight = FontWeight.SemiBold
@@ -222,6 +226,112 @@ fun RoadmapMonthCard(
                 Column(modifier = Modifier.padding(top = 14.dp)) {
                     HorizontalDivider(color = SurfaceCardBorder, thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    if (month.learningObjectives.isNotEmpty()) {
+                        Text(
+                            text = "🎯 Key Learning Objectives:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = IndigoPrimary
+                        )
+                        month.learningObjectives.forEach { obj ->
+                            Text(
+                                text = "• $obj",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = 1.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    if (month.practiceExercises.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "⚡ Practice Exercises & Code Challenges:",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            val completedCount = month.completedExercises.size
+                            Text(
+                                text = "$completedCount/${month.practiceExercises.size} Done",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (completedCount == month.practiceExercises.size && completedCount > 0) SuccessEmerald else IndigoPrimary
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        month.practiceExercises.forEachIndexed { idx, ex ->
+                            val isChecked = month.completedExercises.contains(idx)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onToggleExercise(idx) }
+                                    .padding(vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { onToggleExercise(idx) },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = SuccessEmerald,
+                                        uncheckedColor = CharcoalTextMuted
+                                    ),
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .testTag("exercise_check_${month.monthNumber}_$idx")
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = ex,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isChecked) CharcoalTextMuted else MaterialTheme.colorScheme.onSurface,
+                                    textDecoration = if (isChecked) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    if (month.definitionOfDone.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = IndigoContainer.copy(alpha = 0.35f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, IndigoPrimary.copy(alpha = 0.25f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = "🏁 Definition of Done (DoD):",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = IndigoPrimary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = month.definitionOfDone,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    if (month.revisionSchedule.isNotBlank()) {
+                        Text(
+                            text = "📅 Spaced Recall: ${month.revisionSchedule}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CharcoalTextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
 
                     // 1. Topics to Learn
                     Text(
@@ -371,6 +481,89 @@ fun RoadmapMonthCard(
                             style = MaterialTheme.typography.bodySmall,
                             color = CharcoalTextMuted
                         )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Personal Notes & Custom Targets
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("milestone_notes_section_${month.monthNumber}")
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "📝 Personal Notes & Target Links:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = IndigoPrimary
+                                )
+                                if (!isEditingNotes && localNotes.isNotBlank()) {
+                                    IconButton(
+                                        onClick = { isEditingNotes = true },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Notes",
+                                            tint = IndigoPrimary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (isEditingNotes || localNotes.isBlank()) {
+                                OutlinedTextField(
+                                    value = localNotes,
+                                    onValueChange = { localNotes = it },
+                                    placeholder = {
+                                        Text(
+                                            "Add personal insights, custom GitHub repo links, or study notes for this milestone...",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    },
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp)
+                                        .testTag("milestone_notes_input_${month.monthNumber}"),
+                                    maxLines = 4
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(
+                                    onClick = {
+                                        onSaveCustomNotes(localNotes)
+                                        isEditingNotes = false
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.End)
+                                        .testTag("btn_save_notes_${month.monthNumber}")
+                                ) {
+                                    Text("Save Notes", style = MaterialTheme.typography.labelSmall)
+                                }
+                            } else {
+                                Text(
+                                    text = localNotes,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .clickable { isEditingNotes = true }
+                                )
+                            }
+                        }
                     }
                 }
             }

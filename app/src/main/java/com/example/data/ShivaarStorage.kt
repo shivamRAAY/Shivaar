@@ -486,6 +486,85 @@ class ShivaarStorage(context: Context?) {
         return prefs.getStringSet(KEY_FOLLOWED_ROADMAP_IDS, emptySet()) ?: emptySet()
     }
 
+    fun saveAdoptedRoadmapId(id: String?) {
+        if (prefs == null) return
+        if (id != null) {
+            prefs.edit().putString(KEY_ADOPTED_ROADMAP_ID, id).apply()
+        } else {
+            prefs.edit().remove(KEY_ADOPTED_ROADMAP_ID).apply()
+        }
+    }
+
+    fun loadAdoptedRoadmapId(): String? {
+        if (prefs == null) return null
+        return prefs.getString(KEY_ADOPTED_ROADMAP_ID, null)
+    }
+
+    fun saveMilestoneCustomNotes(notes: Map<String, String>) {
+        if (prefs == null) return
+        try {
+            val obj = JSONObject()
+            notes.forEach { (k, v) -> obj.put(k, v) }
+            prefs.edit().putString(KEY_MILESTONE_NOTES, obj.toString()).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun loadMilestoneCustomNotes(): Map<String, String> {
+        if (prefs == null) return emptyMap()
+        val json = prefs.getString(KEY_MILESTONE_NOTES, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(json)
+            val map = mutableMapOf<String, String>()
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                map[key] = obj.getString(key)
+            }
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun saveMilestoneCompletedExercises(completedMap: Map<String, List<Int>>) {
+        if (prefs == null) return
+        try {
+            val obj = JSONObject()
+            completedMap.forEach { (k, list) ->
+                val arr = JSONArray()
+                list.forEach { arr.put(it) }
+                obj.put(k, arr)
+            }
+            prefs.edit().putString(KEY_MILESTONE_EXERCISES, obj.toString()).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun loadMilestoneCompletedExercises(): Map<String, List<Int>> {
+        if (prefs == null) return emptyMap()
+        val json = prefs.getString(KEY_MILESTONE_EXERCISES, null) ?: return emptyMap()
+        return try {
+            val obj = JSONObject(json)
+            val map = mutableMapOf<String, List<Int>>()
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val arr = obj.getJSONArray(key)
+                val list = mutableListOf<Int>()
+                for (i in 0 until arr.length()) {
+                    list.add(arr.getInt(i))
+                }
+                map[key] = list
+            }
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
     companion object {
         private const val KEY_TASKS = "shivaar_tasks_v1"
         private const val KEY_TOMORROW_TASKS = "shivaar_tomorrow_tasks_v1"
@@ -494,5 +573,8 @@ class ShivaarStorage(context: Context?) {
         private const val KEY_ONBOARDING_DATA = "shivaar_onboarding_data_v1"
         private const val KEY_SAVED_ROADMAP_IDS = "shivaar_saved_roadmaps_v1"
         private const val KEY_FOLLOWED_ROADMAP_IDS = "shivaar_followed_roadmaps_v1"
+        private const val KEY_ADOPTED_ROADMAP_ID = "shivaar_adopted_roadmap_id_v1"
+        private const val KEY_MILESTONE_NOTES = "shivaar_milestone_notes_v1"
+        private const val KEY_MILESTONE_EXERCISES = "shivaar_milestone_exercises_v1"
     }
 }

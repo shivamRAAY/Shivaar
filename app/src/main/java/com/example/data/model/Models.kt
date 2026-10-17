@@ -314,5 +314,7 @@ data class RoadmapMonth(
     val definitionOfDone: String = "",
     val revisionSchedule: String = "",
     val phaseOrYearName: String = "",
-    val semesterOrMilestoneName: String = ""
+    val semesterOrMilestoneName: String = "",
+    val customNotes: String = "",
+    val completedExercises: List<Int> = emptyList()
 )

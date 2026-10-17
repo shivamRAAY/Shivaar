@@ -83,11 +83,31 @@ class ShivaarRepository(
     private val _followedRoadmapIds = MutableStateFlow(storage.loadFollowedRoadmapIds())
     val followedRoadmapIds: StateFlow<Set<String>> = _followedRoadmapIds.asStateFlow()
 
+    private val _adoptedRoadmapId = MutableStateFlow(storage.loadAdoptedRoadmapId())
+    val adoptedRoadmapId: StateFlow<String?> = _adoptedRoadmapId.asStateFlow()
+
+    private val _milestoneCustomNotes = MutableStateFlow(storage.loadMilestoneCustomNotes())
+    val milestoneCustomNotes: StateFlow<Map<String, String>> = _milestoneCustomNotes.asStateFlow()
+
+    private val _milestoneCompletedExercises = MutableStateFlow(storage.loadMilestoneCompletedExercises())
+    val milestoneCompletedExercises: StateFlow<Map<String, List<Int>>> = _milestoneCompletedExercises.asStateFlow()
+
     private val _publicRoadmaps = MutableStateFlow(PublicRoadmapsData.allRoadmaps)
     val publicRoadmaps: StateFlow<List<PublicRoadmap>> = _publicRoadmaps.asStateFlow()
 
     private val _activeFocusTask = MutableStateFlow<TaskItem?>(null)
     val activeFocusTask: StateFlow<TaskItem?> = _activeFocusTask.asStateFlow()
+
+    private fun applyCustomNotesAndExercisesToMonths(months: List<RoadmapMonth>): List<RoadmapMonth> {
+        val notes = _milestoneCustomNotes.value
+        val exercises = _milestoneCompletedExercises.value
+        return months.map { m ->
+            m.copy(
+                customNotes = notes[m.id] ?: m.customNotes,
+                completedExercises = exercises[m.id] ?: m.completedExercises
+            )
+        }
+    }
 
     init {
         // Save initial tasks if first run to establish persistent baseline
@@ -97,8 +117,19 @@ class ShivaarRepository(
         if (storage.loadTomorrowTasks() == null) {
             storage.saveTomorrowTasks(_tomorrowTasks.value)
         }
-        if (_onboardingData.value.chosenPathId != null) {
-            _roadmapMonths.value = PersonalizedRoadmapEngine.generatePersonalizedRoadmap(_onboardingData.value)
+        val adoptedId = _adoptedRoadmapId.value
+        if (adoptedId != null) {
+            val pub = _publicRoadmaps.value.find { it.id == adoptedId }
+            if (pub != null) {
+                val adapted = PersonalizedRoadmapEngine.adaptPublicRoadmapToPersonalCurriculum(pub, _onboardingData.value)
+                _roadmapMonths.value = applyCustomNotesAndExercisesToMonths(adapted)
+            }
+        } else if (_onboardingData.value.chosenPathId != null) {
+            _roadmapMonths.value = applyCustomNotesAndExercisesToMonths(
+                PersonalizedRoadmapEngine.generatePersonalizedRoadmap(_onboardingData.value)
+            )
+        } else {
+            _roadmapMonths.value = applyCustomNotesAndExercisesToMonths(_roadmapMonths.value)
         }
     }
 
@@ -495,6 +526,10 @@ class ShivaarRepository(
     fun saveOnboardingProgress(data: OnboardingData) {
         _onboardingData.value = data
         storage.saveOnboardingData(data)
+        // Automatically generate personalized roadmap if path is chosen
+        if (data.chosenPathId != null) {
+            _roadmapMonths.value = PersonalizedRoadmapEngine.generatePersonalizedRoadmap(data)
+        }
         // Automatically reflect verified academic stage & constraints into UserProfile
         val updatedProfile = _userProfile.value.copy(
             degree = data.step1Education.qualification + if (data.step1Education.fieldOfStudy.isNotBlank()) " (${data.step1Education.fieldOfStudy})" else "",
@@ -505,6 +540,16 @@ class ShivaarRepository(
             primaryTrack = data.chosenPathId ?: (data.step3Goals.selectedGoals.firstOrNull()?.label ?: _userProfile.value.primaryTrack)
         )
         updateUserProfile(updatedProfile)
+    }
+
+    fun generateAndApplyPersonalizedRoadmap(data: OnboardingData = _onboardingData.value) {
+        val personalized = PersonalizedRoadmapEngine.generatePersonalizedRoadmap(data)
+        _roadmapMonths.value = personalized
+        // Automatically bridge & spawn tasks for active month into Today
+        val activeMonth = personalized.firstOrNull { it.isCurrentMonth } ?: personalized.firstOrNull()
+        if (activeMonth != null) {
+            generateDailyTasksFromMonth(activeMonth)
+        }
     }
 
     fun toggleSaveRoadmap(roadmapId: String) {
@@ -527,6 +572,86 @@ class ShivaarRepository(
         }
         _followedRoadmapIds.value = current
         storage.saveFollowedRoadmapIds(current)
+    }
+
+    /**
+     * Phase 6: Adopt a Public Roadmap as the student's active curriculum.
+     * Replaces active months with the adapted roadmap, sets milestone 1 active,
+     * updates user profile, follows the roadmap, and spawns day 1 execution tasks.
+     */
+    fun adoptPublicRoadmap(roadmapId: String, autoSpawnTasks: Boolean = true) {
+        val roadmap = _publicRoadmaps.value.find { it.id == roadmapId } ?: return
+        val adapted = PersonalizedRoadmapEngine.adaptPublicRoadmapToPersonalCurriculum(roadmap, _onboardingData.value)
+        val enriched = applyCustomNotesAndExercisesToMonths(adapted)
+        _roadmapMonths.value = enriched
+        _adoptedRoadmapId.value = roadmapId
+        storage.saveAdoptedRoadmapId(roadmapId)
+
+        // Automatically follow the roadmap
+        val followed = _followedRoadmapIds.value.toMutableSet()
+        followed.add(roadmapId)
+        _followedRoadmapIds.value = followed
+        storage.saveFollowedRoadmapIds(followed)
+
+        // Update profile primary track
+        val updatedProfile = _userProfile.value.copy(
+            primaryTrack = roadmap.title,
+            currentMonth = 1
+        )
+        updateUserProfile(updatedProfile)
+
+        // Seed day 1 execution tasks
+        if (autoSpawnTasks) {
+            enriched.firstOrNull()?.let { generateDailyTasksFromMonth(it) }
+        }
+    }
+
+    /**
+     * Phase 6: Update personal notes on a roadmap milestone
+     */
+    fun updateMilestoneCustomNotes(monthId: String, notes: String) {
+        val updatedNotes = _milestoneCustomNotes.value.toMutableMap()
+        updatedNotes[monthId] = notes
+        _milestoneCustomNotes.value = updatedNotes
+        storage.saveMilestoneCustomNotes(updatedNotes)
+
+        _roadmapMonths.update { list ->
+            list.map { m ->
+                if (m.id == monthId) m.copy(customNotes = notes) else m
+            }
+        }
+    }
+
+    /**
+     * Phase 6: Toggle practice exercise completion on a milestone
+     */
+    fun toggleMilestoneExercise(monthId: String, exerciseIndex: Int) {
+        val currentMap = _milestoneCompletedExercises.value.toMutableMap()
+        val currentList = currentMap[monthId]?.toMutableList() ?: mutableListOf()
+        if (currentList.contains(exerciseIndex)) {
+            currentList.remove(exerciseIndex)
+        } else {
+            currentList.add(exerciseIndex)
+        }
+        currentMap[monthId] = currentList
+        _milestoneCompletedExercises.value = currentMap
+        storage.saveMilestoneCompletedExercises(currentMap)
+
+        _roadmapMonths.update { list ->
+            list.map { m ->
+                if (m.id == monthId) m.copy(completedExercises = currentList) else m
+            }
+        }
+    }
+
+    /**
+     * Phase 6: Export active curriculum syllabus as Markdown
+     */
+    fun getCurriculumExportMarkdown(): String {
+        val title = _adoptedRoadmapId.value?.let { id ->
+            _publicRoadmaps.value.find { it.id == id }?.title
+        } ?: _userProfile.value.primaryTrack
+        return PersonalizedRoadmapEngine.exportCurriculumAsMarkdown(title, _roadmapMonths.value)
     }
 
     // --- 48-Month Roadmap Actions ---
@@ -575,7 +700,7 @@ class ShivaarRepository(
 
     fun generateDailyTasksFromMonth(month: RoadmapMonth) {
         val newTasks = mutableListOf<TaskItem>()
-        val mainTopic = month.topics.firstOrNull() ?: month.mainFocus
+        val mainTopic = month.learningObjectives.firstOrNull() ?: month.topics.firstOrNull() ?: month.mainFocus
         newTasks.add(
             TaskItem(
                 id = "task_m${month.monthNumber}_topic_${System.currentTimeMillis()}",
@@ -590,32 +715,40 @@ class ShivaarRepository(
                     SkillTrack.ACADEMICS -> TaskCategory.ACADEMICS
                 },
                 whyItMatters = "Direct milestone for ${month.title} (${month.mainFocus}).",
-                instructions = "1. Read recommended documentation.\n2. Write code examples and verify compilation.\n3. Log lessons in notes.",
+                instructions = if (month.learningResources.isNotEmpty()) {
+                    "Resources: ${month.learningResources.joinToString("; ")}\n1. Study core concepts.\n2. Write code samples and verify.\n3. Log notes."
+                } else {
+                    "1. Read recommended documentation.\n2. Write code examples and verify compilation.\n3. Log lessons in notes."
+                },
                 durationMinutes = 45,
                 priority = Priority.HIGH,
                 difficulty = Difficulty.INTERMEDIATE,
                 resourceName = "Month ${month.monthNumber}: ${month.title}",
-                definitionOfDone = month.measurableOutput
+                definitionOfDone = month.definitionOfDone.ifBlank { month.measurableOutput }
             )
         )
+
+        val dsaPractice = month.practiceExercises.firstOrNull { it.contains("DSA", ignoreCase = true) || it.contains("problem", ignoreCase = true) }
+            ?: "DSA Sprint: ${month.dsaTarget}"
         newTasks.add(
             TaskItem(
                 id = "task_m${month.monthNumber}_dsa_${System.currentTimeMillis() + 1}",
-                title = "DSA Sprint: ${month.dsaTarget}",
+                title = dsaPractice,
                 category = TaskCategory.DSA,
                 whyItMatters = "Progresses toward Month ${month.monthNumber} cumulative target of ${month.cumulativeDsaGoal} quality problems.",
                 instructions = "Solve 2 problems matching this pattern on LeetCode/GFG and record time/space complexities.",
                 durationMinutes = 40,
                 priority = Priority.MEDIUM,
                 difficulty = Difficulty.INTERMEDIATE,
-                resourceName = "Cumulative Target: ${month.cumulativeDsaGoal} Problems",
+                resourceName = "Target: ${month.dsaTarget}",
                 definitionOfDone = "Accepted submission on LeetCode with documented Big-O analysis."
             )
         )
+
         newTasks.add(
             TaskItem(
                 id = "task_m${month.monthNumber}_proj_${System.currentTimeMillis() + 2}",
-                title = "Milestone: ${month.projectMilestone}",
+                title = "Milestone Build: ${month.projectMilestone}",
                 category = TaskCategory.DEV,
                 whyItMatters = month.readinessCheckpoint,
                 instructions = "Implement core feature and verify with unit tests or automated linting.",
@@ -623,10 +756,90 @@ class ShivaarRepository(
                 priority = Priority.MEDIUM,
                 difficulty = Difficulty.INTERMEDIATE,
                 resourceName = "Portfolio Output",
-                definitionOfDone = month.readinessCheckpoint
+                definitionOfDone = month.assessmentCriteria.ifBlank { month.readinessCheckpoint }
             )
         )
-        _tasks.update { it + newTasks }
+
+        if (month.revisionSchedule.isNotBlank()) {
+            newTasks.add(
+                TaskItem(
+                    id = "task_m${month.monthNumber}_rev_${System.currentTimeMillis() + 3}",
+                    title = "Spaced Recall: ${month.mainFocus}",
+                    category = TaskCategory.ACADEMICS,
+                    whyItMatters = month.revisionSchedule,
+                    instructions = "Active recall session using flashcards and 1 previous milestone question.",
+                    durationMinutes = 20,
+                    priority = Priority.LOW,
+                    difficulty = Difficulty.BEGINNER,
+                    resourceName = "Active Recall",
+                    definitionOfDone = "Reviewed past month summary notes and resolved 1 revision prompt."
+                )
+            )
+        }
+
+        _tasks.update { current ->
+            // Prevent exact duplicates
+            val titles = current.map { it.title }.toSet()
+            current + newTasks.filter { it.title !in titles }
+        }
+    }
+
+    /**
+     * Phase 5: Advance to Next Milestone
+     * Marks the current month complete, activates the subsequent month,
+     * and automatically seeds the new month's daily tasks.
+     */
+    fun advanceToNextMilestone(currentMonthId: String) {
+        val months = _roadmapMonths.value
+        val currentIndex = months.indexOfFirst { it.id == currentMonthId }
+        if (currentIndex != -1) {
+            val updated = months.mapIndexed { index, m ->
+                when (index) {
+                    currentIndex -> m.copy(isCompleted = true, isCurrentMonth = false)
+                    currentIndex + 1 -> m.copy(isCurrentMonth = true)
+                    else -> m
+                }
+            }
+            _roadmapMonths.value = updated
+            val nextMonth = updated.getOrNull(currentIndex + 1)
+            if (nextMonth != null) {
+                _userProfile.update { it.copy(currentMonth = nextMonth.monthNumber) }
+                generateDailyTasksFromMonth(nextMonth)
+            }
+        }
+    }
+
+    /**
+     * Phase 5: Adaptive Schedule Recovery
+     * When the user falls behind or needs catch-up, this adjusts tomorrow's queue,
+     * tags critical milestones, and spawns a high-priority Catch-Up Task.
+     */
+    fun triggerAdaptiveRecovery() {
+        val currentTasks = _tasks.value
+        val uncompleted = currentTasks.filter { it.status != TaskStatus.COMPLETED }
+        if (uncompleted.isNotEmpty()) {
+            // Move lower priority items to tomorrow to reduce cognitive overwhelm
+            val lowerPriority = uncompleted.filter { it.priority == Priority.LOW }
+            if (lowerPriority.isNotEmpty()) {
+                _tasks.update { it - lowerPriority.toSet() }
+                _tomorrowTasks.update { it + lowerPriority }
+            }
+        }
+
+        val activeMonth = _roadmapMonths.value.find { it.isCurrentMonth }
+        val recoveryTask = TaskItem(
+            id = "task_recovery_${System.currentTimeMillis()}",
+            title = "Adaptive Catch-Up Sprint: ${activeMonth?.mainFocus ?: "Core Fundamentals"}",
+            category = TaskCategory.ACADEMICS,
+            whyItMatters = activeMonth?.failureRecoveryInstructions ?: "Streamlined 30-min catch-up sprint to maintain consistent study momentum.",
+            instructions = "1. Focus exclusively on the single most critical project milestone or DSA problem.\n2. Skip secondary optional readings.\n3. Verify solution and mark milestone progress.",
+            durationMinutes = 30,
+            priority = Priority.HIGH,
+            difficulty = Difficulty.INTERMEDIATE,
+            resourceName = "Adaptive Recovery",
+            definitionOfDone = "1 core priority item completed and checked off."
+        )
+        _tasks.update { listOf(recoveryTask) + it }
     }
 
     fun addResearchSources(newSources: List<ResearchSource>) {

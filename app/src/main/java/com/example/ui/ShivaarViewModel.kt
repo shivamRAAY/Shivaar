@@ -60,6 +60,9 @@ class ShivaarViewModel @JvmOverloads constructor(
     val publicRoadmaps: StateFlow<List<PublicRoadmap>> = repository.publicRoadmaps
     val savedRoadmapIds: StateFlow<Set<String>> = repository.savedRoadmapIds
     val followedRoadmapIds: StateFlow<Set<String>> = repository.followedRoadmapIds
+    val adoptedRoadmapId: StateFlow<String?> = repository.adoptedRoadmapId
+    val milestoneCustomNotes: StateFlow<Map<String, String>> = repository.milestoneCustomNotes
+    val milestoneCompletedExercises: StateFlow<Map<String, List<Int>>> = repository.milestoneCompletedExercises
     val syncStatus: StateFlow<SyncStatus> = repository.syncStatus
 
     init {
@@ -416,5 +419,35 @@ class ShivaarViewModel @JvmOverloads constructor(
         val current = onboardingData.value
         val updated = current.copy(chosenPathId = pathId, isCompleted = true, completedAt = System.currentTimeMillis())
         saveOnboardingProgress(updated)
+        repository.generateAndApplyPersonalizedRoadmap(updated)
+    }
+
+    fun generateAndApplyPersonalizedRoadmap() {
+        repository.generateAndApplyPersonalizedRoadmap(onboardingData.value)
+    }
+
+    fun advanceToNextMilestone(currentMonthId: String) {
+        repository.advanceToNextMilestone(currentMonthId)
+    }
+
+    fun triggerAdaptiveRecovery() {
+        repository.triggerAdaptiveRecovery()
+    }
+
+    // Phase 6 Actions
+    fun adoptPublicRoadmap(roadmapId: String, autoSpawnTasks: Boolean = true) {
+        repository.adoptPublicRoadmap(roadmapId, autoSpawnTasks)
+    }
+
+    fun updateMilestoneCustomNotes(monthId: String, notes: String) {
+        repository.updateMilestoneCustomNotes(monthId, notes)
+    }
+
+    fun toggleMilestoneExercise(monthId: String, exerciseIndex: Int) {
+        repository.toggleMilestoneExercise(monthId, exerciseIndex)
+    }
+
+    fun getCurriculumExportMarkdown(): String {
+        return repository.getCurriculumExportMarkdown()
     }
 }
