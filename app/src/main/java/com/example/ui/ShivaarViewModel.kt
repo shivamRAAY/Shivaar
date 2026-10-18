@@ -25,7 +25,8 @@ enum class AppDestination(val label: String) {
     MENTOR("AI Mentor"),
     RESEARCH("Research"),
     ANALYTICS("Analytics"),
-    SETTINGS("Settings")
+    SETTINGS("Settings"),
+    WEB_PWA("Web PWA")
 }
 
 data class FocusSessionState(

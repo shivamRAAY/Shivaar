@@ -17,6 +17,10 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.viewinterop.AndroidView
+import android.annotation.SuppressLint
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -157,6 +161,7 @@ class MainActivity : ComponentActivity() {
                                 AppDestination.RESEARCH -> ResearchLibraryScreen(viewModel = viewModel)
                                 AppDestination.ANALYTICS -> AnalyticsScreen(viewModel = viewModel)
                                 AppDestination.SETTINGS -> SettingsScreen(viewModel = viewModel)
+                                AppDestination.WEB_PWA -> WebPwaScreen()
                             }
                         }
                     }
@@ -280,6 +285,17 @@ private fun ShivaarTopAppBar(
                 )
             }
 
+            // Web PWA Mode Toggle Shortcut
+            IconButton(
+                onClick = { onTabSelected(if (currentTab == AppDestination.WEB_PWA) AppDestination.TODAY else AppDestination.WEB_PWA) },
+                modifier = Modifier.testTag("top_bar_web_pwa_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = "Web PWA View",
+                    tint = if (currentTab == AppDestination.WEB_PWA) IndigoPrimary else CharcoalTextSecondary
+                )
+            }
             // Settings Shortcut
             IconButton(
                 onClick = { onTabSelected(AppDestination.SETTINGS) },
@@ -349,4 +365,23 @@ private fun ShivaarBottomNavigationBar(
             )
         }
     }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun WebPwaScreen() {
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.allowFileAccess = true
+                webViewClient = WebViewClient()
+                loadUrl("file:///android_asset/web/index.html")
+            }
+        },
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("web_pwa_webview_container")
+    )
 }
